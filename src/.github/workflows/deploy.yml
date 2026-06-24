@@ -1,25 +1,25 @@
-import { useSelector } from "react-redux";
+name: Frontend CI
 
-interface ResumeState {
-  resume: {
-    atsScore: number;
-    aiReview: string;
-  };
-}
+on:
+  push:
+    branches:
+      - main
 
-function ResumeSummary() {
-  const { atsScore, aiReview } = useSelector(
-    (state: ResumeState) => state.resume
-  );
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-  if (!atsScore) return null;
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-  return (
-    <div>
-      <p>ATS Score: {atsScore}</p>
-      <p>{aiReview.length}</p>
-    </div>
-  );
-}
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-export default ResumeSummary;
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Project
+        run: npm run build
