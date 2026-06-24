@@ -10,6 +10,7 @@ const ResumeSchema = new mongoose.Schema({
   recommendedRole: String,
   resumeStrength: String,
   resumeText: String,
+  resumeUrl: String,
 
   createdAt: {
     type: Date,

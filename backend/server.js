@@ -1,14 +1,21 @@
+require("dotenv").config();
+console.log("Cloudinary Key:", process.env.CLOUDINARY_API_KEY);
 const express = require("express");
 const verifyToken = require("./middleware/authMiddleware");
 const cors = require("cors");
 const multer = require("multer");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
+const cloudinary = require("./cloudinary");
 const pdfParse = require("pdf-parse");
 const fs = require("fs");
+
 const User = require("./models/User");
-require("dotenv").config();
+
 const connectDB = require("./db");
 connectDB();
 const Groq = require("groq-sdk");
+const adminRoutes = require("./routes/adminRoutes");
 const Resume = require("./models/Resume");
 const jwt = require("jsonwebtoken");
 const groq = new Groq({
@@ -18,7 +25,14 @@ const groq = new Groq({
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(helmet());
 
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+  })
+);
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, "uploads/");
@@ -36,9 +50,20 @@ app.get("/", (req, res) => {
   });
 });
 
+app.use("/admin", adminRoutes);
 app.post("/upload-resume", upload.single("resume"), async (req, res) => {
   try {
     console.log("UPLOAD REQUEST RECEIVED");
+    const cloudinaryResult =
+  await cloudinary.uploader.upload(
+    req.file.path,
+    {
+      resource_type: "raw",
+      folder: "career-copilot-resumes",
+    }
+  );
+
+console.log(cloudinaryResult.secure_url);
 
     const pdfBuffer = fs.readFileSync(req.file.path);
     const pdfData = await pdfParse(pdfBuffer);
@@ -275,23 +300,23 @@ console.log("IMPROVED:", improvedScore);
 console.log("SAVING TO DB...");
 
 try {
-  const savedResume = await Resume.create({
+ const savedResume = await Resume.create({
   userId: req.user.id,
-
   atsScore: score,
   recommendedRole,
   resumeStrength,
   resumeText,
 });
-
   console.log("SAVED TO DB ✅");
   console.log(savedResume);
 } catch (err) {
   console.error("DB SAVE ERROR ❌");
   console.error(err);
 }
+
 res.json({
   success: true,
+  message: "Resume uploaded and parsed successfully",
   atsScore: score,
   improvedScore,
   foundKeywords,
@@ -304,6 +329,48 @@ res.json({
   resumeStrength,
 });
 });
+app.post("/job-match", async (req, res) => {
+  const { resumeText, jobDescription } = req.body;
+
+  const resumeWords =
+    resumeText.toLowerCase().split(/\W+/);
+
+  const jobWords =
+    jobDescription.toLowerCase().split(/\W+/);
+
+  const matched = [];
+
+  jobWords.forEach((word) => {
+    if (
+      word.length > 3 &&
+      resumeWords.includes(word)
+    ) {
+      matched.push(word);
+    }
+  });
+
+  const uniqueMatched = [...new Set(matched)];
+
+  const score = Math.min(
+    100,
+    Math.round(
+      (uniqueMatched.length / jobWords.length) * 1000
+    )
+  );
+
+  const missingSkills = jobWords.filter(
+    (word) =>
+      word.length > 3 &&
+      !resumeWords.includes(word)
+  );
+
+  res.json({
+    score,
+    matchedSkills: uniqueMatched,
+    missingSkills: [...new Set(missingSkills)],
+  });
+});
+
 // res.json({
 //   success: true,
 //   atsScore: score,
@@ -313,6 +380,99 @@ res.json({
 //   recommendedRole  "General Software Developer"
 // });
 // });
+app.post("/generate-cover-letter", async (req, res) => {
+  try {
+    const { resumeText, jobDescription } = req.body;
+
+    const prompt = `
+You are a professional career coach.
+
+Using the resume and job description below,
+write a personalized cover letter.
+
+Resume:
+${resumeText}
+
+Job Description:
+${jobDescription}
+
+Requirements:
+- Professional tone
+- 250-350 words
+- Highlight matching skills
+- Show enthusiasm
+- End professionally
+`;
+
+    const completion =
+      await groq.chat.completions.create({
+        model: "llama-3.1-8b-instant",
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+      });
+
+    res.json({
+      success: true,
+      coverLetter:
+        completion.choices[0].message.content,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Cover Letter Generation Failed",
+    });
+  }
+});
+
+app.post("/rewrite-resume", async (req, res) => {
+  try {
+    const { resumeText } = req.body;
+
+    const prompt = `
+Rewrite this resume to make it:
+
+- More ATS friendly
+- More professional
+- Achievement oriented
+- Stronger action verbs
+- Better software developer resume
+
+Resume:
+
+${resumeText}
+`;
+
+    const completion =
+      await groq.chat.completions.create({
+        model: "llama-3.1-8b-instant",
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+      });
+
+    res.json({
+      success: true,
+      improvedResume:
+        completion.choices[0].message.content,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Resume Rewrite Failed",
+    });
+  }
+});
 
 const PORT = 5000;
 app.post("/ai-review", async (req, res) => {
@@ -489,7 +649,7 @@ const bcrypt = require("bcryptjs");
 
 app.post("/signup", async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     const existingUser = await User.findOne({ email });
 
@@ -505,6 +665,7 @@ app.post("/signup", async (req, res) => {
       name,
       email,
       password: hashedPassword,
+      role: role || "user",
     });
 
     await user.save();
@@ -561,6 +722,7 @@ app.post("/login", async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+          role: user.role,
       },
     });
   } catch (error) {
@@ -571,6 +733,17 @@ app.post("/login", async (req, res) => {
     });
   }
 });
+
+
+
+app.use(helmet());
+
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+  })
+);
 app.listen(PORT, () => {
   console.log("MAHIMA PDF PARSER SERVER RUNNING 🚀");
 });

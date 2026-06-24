@@ -26,12 +26,35 @@ function HistorySection({ history, deleteResume, historyRef }) {
               </p>
             </div>
 
-            <button
-              onClick={() => deleteResume(item._id)}
-              className="px-3 py-1 bg-red-500/20 rounded"
-            >
-              Delete
-            </button>
+           <div className="flex gap-3">
+  {item.resumeUrl && (
+    <>
+      <a
+        href={item.resumeUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="px-3 py-1 bg-cyan-500/20 border border-cyan-500/30 rounded text-cyan-400"
+      >
+        View
+      </a>
+
+      <a
+        href={item.resumeUrl}
+        download
+        className="px-3 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded text-emerald-400"
+      >
+        Download
+      </a>
+    </>
+  )}
+
+  <button
+    onClick={() => deleteResume(item._id)}
+    className="px-3 py-1 bg-red-500/20 rounded text-red-400"
+  >
+    Delete
+  </button>
+</div>
           </div>
         ))}
       </div>

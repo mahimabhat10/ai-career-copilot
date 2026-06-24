@@ -3,8 +3,9 @@ function JobMatcher({
   setJobDescription,
   analyzeJD,
   matchScore,
+  matchedSkills,
   missingJDKeywords,
-}) {
+}){
   return (
     <section className="mb-8 bg-[#12121a] border border-white/[0.08] rounded-2xl p-8">
       <div className="flex items-center gap-3 mb-6">
@@ -66,7 +67,42 @@ function JobMatcher({
               </p>
             </div>
           </div>
+{matchedSkills?.length > 0 && (
+  <>
+    <h4 className="text-sm font-medium text-gray-400 mb-3">
+      Matched Skills
+    </h4>
 
+    <div className="flex flex-wrap gap-2 mb-6">
+      {matchedSkills.map((item, index) => (
+        <span
+          key={index}
+          className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm rounded-lg"
+        >
+          {item}
+        </span>
+      ))}
+    </div>
+  </>
+)}
+{matchedSkills?.length > 0 && (
+  <>
+    <h4 className="text-sm font-medium text-gray-400 mb-3">
+      Matched Skills
+    </h4>
+
+    <div className="flex flex-wrap gap-2 mb-6">
+      {matchedSkills.map((item, index) => (
+        <span
+          key={index}
+          className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm rounded-lg"
+        >
+          {item}
+        </span>
+      ))}
+    </div>
+  </>
+)}
           {missingJDKeywords?.length > 0 && (
             <>
               <h4 className="text-sm font-medium text-gray-400 mb-3">

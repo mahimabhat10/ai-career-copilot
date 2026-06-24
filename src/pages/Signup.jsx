@@ -8,7 +8,9 @@ function Signup() {
     name: "",
     email: "",
     password: "",
+     role: "user",
   });
+  
 
   const [message, setMessage] = useState("");
 
@@ -87,7 +89,14 @@ function Signup() {
           onChange={handleChange}
           className="w-full p-3 mb-4 rounded bg-black/30 border border-white/10"
         />
-
+<select
+  name="role"
+  value={formData.role}
+  onChange={handleChange}
+  className="w-full p-3 mb-4 rounded bg-black/30 border border-white/10"
+>
+  <option value="user">User</option>
+</select>
         <button
           type="submit"
           className="w-full py-3 rounded bg-violet-600 hover:bg-violet-700"

@@ -1,50 +1,54 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-
+import { useDispatch } from "react-redux";
+import { useForm } from "react-hook-form";
+import { loginSuccess } from "../redux/authSlice";
+import { loginSchema } from "../validations/authSchema";
+import api from "../api/axios";
 function Login() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm();
 
   const [message, setMessage] = useState("");
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+      const handleLogin = async (data) => {
+  try {
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+    const validation = loginSchema.safeParse(data);
 
-    try {
-      const response = await fetch(
-        "http://localhost:5000/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        }
-      );
+   
+const response = await api.post(
+  "/login",
+  data
+);
 
-      const data = await response.json();
+const result = response.data;
+    
 
-      if (response.ok) {
-        localStorage.setItem("token", data.token);
+      if (result.token) {
+        localStorage.setItem("token", result.token);
+
         localStorage.setItem(
           "user",
-          JSON.stringify(data.user)
+          JSON.stringify(result.user)
+        );
+
+        dispatch(
+          loginSuccess({
+            user: result.user,
+            token: result.token,
+          })
         );
 
         navigate("/dashboard");
       } else {
-        setMessage(data.message);
+        setMessage(result.message);
       }
     } catch (error) {
       console.error(error);
@@ -55,7 +59,7 @@ function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f] text-white">
       <form
-        onSubmit={handleLogin}
+        onSubmit={handleSubmit(handleLogin)}
         className="w-full max-w-md p-8 rounded-2xl bg-[#12121a] border border-white/10"
       >
         <h1 className="text-3xl font-bold mb-6">
@@ -64,21 +68,33 @@ function Login() {
 
         <input
           type="email"
-          name="email"
           placeholder="Email"
-          value={formData.email}
-          onChange={handleChange}
-          className="w-full p-3 mb-4 rounded bg-black/30 border border-white/10"
+          {...register("email", {
+            required: "Email is required",
+          })}
+          className="w-full p-3 mb-2 rounded bg-black/30 border border-white/10"
         />
+
+        {errors.email && (
+          <p className="text-red-400 text-sm mb-3">
+            {errors.email.message}
+          </p>
+        )}
 
         <input
           type="password"
-          name="password"
           placeholder="Password"
-          value={formData.password}
-          onChange={handleChange}
-          className="w-full p-3 mb-4 rounded bg-black/30 border border-white/10"
+          {...register("password", {
+            required: "Password is required",
+          })}
+          className="w-full p-3 mb-2 rounded bg-black/30 border border-white/10"
         />
+
+        {errors.password && (
+          <p className="text-red-400 text-sm mb-3">
+            {errors.password.message}
+          </p>
+        )}
 
         <button
           type="submit"
@@ -98,7 +114,7 @@ function Login() {
         </p>
 
         {message && (
-          <p className="mt-4 text-center">
+          <p className="mt-4 text-center text-red-400">
             {message}
           </p>
         )}

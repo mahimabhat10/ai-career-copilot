@@ -1,10 +1,18 @@
 import { useState, useRef } from "react";
 import Header from "./components/Header";
-
+import ATSTrendChart from "./components/ATSTrendChart";
+import { useDispatch } from "react-redux";
+import {
+  useGetMyResumesQuery,
+} from "./redux/apiSlice";
+import { setResumeData } from "./redux/resumeSlice";
+import CoverLetterGenerator from "./components/CoverLetterGenerator";
+import { motion } from "framer-motion";
 import jsPDF from "jspdf";
 import UploadSection from "./components/UploadSection";
 import ScoreOverview from "./components/ScoreOverview";
 import ResumeStrength from "./components/ResumeStrength";
+
 import ATSChart from "./components/ATSChart";
 import SkillsSection from "./components/SkillsSection";
 import RecommendedJobs from "./components/RecommendedJobs";
@@ -15,11 +23,46 @@ import InterviewQuestions from "./components/InterviewQuestions";
 import HistorySection from "./components/HistorySection";
 import ResumeText from "./components/ResumeText";
 import JobMatcher from "./components/JobMatcher";
-
+import ResumeSummary from "./components/ResumeSummary";
+import ResumeRewriter from "./components/ResumeRewriter";
 function App() {
+useGetMyResumesQuery();
+  const dispatch = useDispatch();
+  const [coverLetter, setCoverLetter] = useState();
+  const [improvedResume, setImprovedResume] = useState("");
+const [loadingCoverLetter, setLoadingCoverLetter] = useState(false);
   const [history, setHistory] = useState([]);
   const historyRef = useRef(null);
   const resultsRef = useRef(null);
+  const [jobDescription, setJobDescription] = useState("");
+const [jobMatchScore, setJobMatchScore] = useState(0);
+const [matchedSkills, setMatchedSkills] = useState([]);
+const [missingSkills, setMissingSkills] = useState([]);
+const analyzeJobMatch = async () => {
+  try {
+    const response = await fetch(
+      "http://localhost:5000/job-match",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          resumeText,
+          jobDescription,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    setJobMatchScore(data.score);
+    setMatchedSkills(data.matchedSkills);
+    setMissingSkills(data.missingSkills);
+  } catch (error) {
+    console.error(error);
+  }
+};
   const fetchHistory = async () => {
   try {
 const token = localStorage.getItem("token");
@@ -62,13 +105,36 @@ const response = await fetch(
   const [recommendedJobs, setRecommendedJobs] = useState([]);
   const [roadmap, setRoadmap] = useState([]);
   const [improvedScore, setImprovedScore] = useState(null);
-  const [jobDescription, setJobDescription] = useState("");
+
   const [matchScore, setMatchScore] = useState(null);
   const [missingJDKeywords, setMissingJDKeywords] = useState([]);
   const [resumeRating, setResumeRating] = useState("");
   const [aiReview, setAiReview] = useState("");
   const [interviewQuestions, setInterviewQuestions] = useState("");
+ const rewriteResume = async () => {
+  try {
+    const response = await fetch(
+      "http://localhost:5000/rewrite-resume",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          resumeText,
+        }),
+      }
+    );
 
+    const data = await response.json();
+
+    setImprovedResume(
+      data.improvedResume || ""
+    );
+  } catch (error) {
+    console.error(error);
+  }
+};
   const uploadResume = async () => {
     if (!resume) {
       setMessage("Please select a PDF file.");
@@ -118,6 +184,13 @@ const analysisResponse = await fetch(
         setResumeRating(analysisData.resumeRating || "");
         const aiData = await aiResponse.json();
         setAiReview(aiData.review || "");
+        dispatch(
+  setResumeData({
+    resumeText: data.extractedText,
+    atsScore: analysisData.atsScore,
+    aiReview: aiData.review,
+  })
+);
         setTimeout(() => {
   resultsRef.current?.scrollIntoView({
     behavior: "smooth",
@@ -154,19 +227,7 @@ const analysisResponse = await fetch(
     doc.save("Career_Report.pdf");
   };
 
-  const analyzeJD = () => {
-    if (!jobDescription || !resumeText) {
-      alert("Please upload a resume and paste a job description.");
-      return;
-    }
-    const jdWords = jobDescription.toLowerCase().split(/\W+/).filter((w) => w.length > 3);
-    const uniqueJDWords = [...new Set(jdWords)];
-    const matched = uniqueJDWords.filter((w) => resumeText.toLowerCase().includes(w));
-    const missing = uniqueJDWords.filter((w) => !resumeText.toLowerCase().includes(w));
-    const score = Math.round((matched.length / uniqueJDWords.length) * 100);
-    setMatchScore(score);
-    setMissingJDKeywords(missing.slice(0, 15));
-  };
+
 
   const generateInterviewQuestions = async () => {
     try {
@@ -185,15 +246,60 @@ const analysisResponse = await fetch(
     }
   };
 
-  const deleteResume = async (id) => {
-    try {
-      await fetch(`http://localhost:5000/delete-resume/${id}`, { method: "DELETE" });
-      fetchHistory();
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  const generateCoverLetter = async () => {
+  try {
+    setLoadingCoverLetter(true);
 
+    const response = await fetch(
+      "http://localhost:5000/generate-cover-letter",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          resumeText,
+          jobDescription,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    setCoverLetter(data.coverLetter || "");
+  } catch (error) {
+    console.error(error);
+  } finally {
+    setLoadingCoverLetter(false);
+  }
+};
+
+const deleteResume = async (id) => {
+  try {
+    await fetch(
+      `http://localhost:5000/delete-resume/${id}`,
+      { method: "DELETE" }
+    );
+
+    fetchHistory();
+  } catch (error) {
+    console.error(error);
+  }
+};
+const bestATS =
+  history.length > 0
+    ? Math.max(...history.map((r) => r.atsScore))
+    : 0;
+
+const avgATS =
+  history.length > 0
+    ? Math.round(
+        history.reduce(
+          (sum, r) => sum + r.atsScore,
+          0
+        ) / history.length
+      )
+    : 0;
   const chartData = [
     { name: "Current ATS", score: atsScore || 0 },
     { name: "Potential ATS", score: improvedScore || 0 },
@@ -229,19 +335,55 @@ const analysisResponse = await fetch(
         }}
       />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 py-12">
-        {/* Header */}
-        <Header />
+     <div className="relative z-10 max-w-7xl mx-auto px-6 py-12">
+ {/* Header */}
+<Header />
 
-        {/* Upload Section */}
-        <UploadSection
-  resume={resume}
-  loading={loading}
-  message={message}
-  setResume={setResume}
-  uploadResume={uploadResume}
-  fetchHistory={fetchHistory}
-/>
+<ResumeSummary />
+
+<motion.div
+  initial={{ opacity: 0, y: 30 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.6 }}
+  className="grid md:grid-cols-3 gap-4 mb-8"
+>
+  <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
+    <h3 className="text-gray-400">Total Resumes</h3>
+    <p className="text-3xl font-bold text-white">
+      {history.length}
+    </p>
+  </div>
+
+  <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
+    <h3 className="text-gray-400">Best ATS</h3>
+    <p className="text-3xl font-bold text-emerald-400">
+      {bestATS}
+    </p>
+  </div>
+
+  <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
+    <h3 className="text-gray-400">Average ATS</h3>
+    <p className="text-3xl font-bold text-cyan-400">
+      {avgATS}
+    </p>
+  </div>
+</motion.div>
+
+<motion.div
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+  transition={{ delay: 0.3 }}
+>
+  <UploadSection
+    resume={resume}
+    loading={loading}
+    message={message}
+    setResume={setResume}
+    uploadResume={uploadResume}
+    fetchHistory={fetchHistory}
+  />
+</motion.div>
+
 {/* Score Overview */}
 <div ref={resultsRef}>
         <ScoreOverview
@@ -282,23 +424,35 @@ const analysisResponse = await fetch(
         {/* Learning Roadmap */}
         <LearningRoadmap roadmap={roadmap} />
         {/* Job Description Matcher */}
-        <JobMatcher
+      <JobMatcher
   jobDescription={jobDescription}
   setJobDescription={setJobDescription}
-  analyzeJD={analyzeJD}
-  matchScore={matchScore}
-  missingJDKeywords={missingJDKeywords}
+  analyzeJD={analyzeJobMatch}
+  matchScore={jobMatchScore}
+  matchedSkills={matchedSkills}
+  missingJDKeywords={missingSkills}
+/>
+<CoverLetterGenerator
+  generateCoverLetter={generateCoverLetter}
+  loadingCoverLetter={loadingCoverLetter}
+  coverLetter={coverLetter}
 />
         {/* AI Review */}
        <AIReview aiReview={aiReview} />
         {/* Interview Questions */}
+        <ResumeRewriter
+  rewriteResume={rewriteResume}
+  improvedResume={improvedResume}
+/>
 <InterviewQuestions
   resumeText={resumeText}
   loadingQuestions={loadingQuestions}
   generateInterviewQuestions={generateInterviewQuestions}
   interviewQuestions={interviewQuestions}
 />
-
+{history.length > 0 && (
+  <ATSTrendChart history={history} />
+)}
         {/* History */}
         <HistorySection
   history={history}
