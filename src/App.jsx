@@ -182,6 +182,7 @@ const analysisResponse = await fetch(
         setSuggestions(analysisData.suggestions || []);
         setRecommendedRole(analysisData.recommendedRole || "");
         setRecommendedJobs(analysisData.recommendedJobs || []);
+        setRoadmap(analysisData.roadmap || []);
         setResumeRating(analysisData.resumeRating || "");
         const aiData = await aiResponse.json();
         setAiReview(aiData.review || "");

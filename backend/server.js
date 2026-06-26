@@ -66,7 +66,7 @@ app.post("/upload-resume", upload.single("resume"), async (req, res) => {
 console.log(cloudinaryResult.secure_url);
 
     const pdfBuffer = fs.readFileSync(req.file.path);
-    const pdfData = await pdfParse(pdfBuffer);
+    fs.unlinkSync(req.file.path);
 
     res.json({
       success: true,
@@ -474,7 +474,7 @@ ${resumeText}
   }
 });
 
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 app.post("/ai-review", async (req, res) => {
   try {
     const { resumeText } = req.body;
