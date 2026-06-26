@@ -6,7 +6,7 @@ function Profile() {
   useEffect(() => {
     const token = localStorage.getItem("token");
 
-    fetch("http://localhost:5000/profile", {
+    fetch("https://ai-career-copilot-backend-a90g.onrender.com/profile", {
       headers: {
         Authorization: `Bearer ${token}`,
       },

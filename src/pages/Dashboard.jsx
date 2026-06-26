@@ -9,7 +9,7 @@ function Dashboard() {
  useEffect(() => {
   const token = localStorage.getItem("token");
 
-  fetch("http://localhost:5000/admin/stats", {
+  fetch("https://ai-career-copilot-backend-a90g.onrender.com/admin/stats", {
     headers: {
       Authorization: `Bearer ${token}`,
     },

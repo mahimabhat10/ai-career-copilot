@@ -1,5 +1,5 @@
 import axios from "axios";
 
 export default axios.create({
-  baseURL: "http://localhost:5000",
+baseURL: "https://ai-career-copilot-backend-a90g.onrender.com",
 });

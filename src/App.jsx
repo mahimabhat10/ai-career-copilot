@@ -41,7 +41,7 @@ const [missingSkills, setMissingSkills] = useState([]);
 const analyzeJobMatch = async () => {
   try {
     const response = await fetch(
-      "http://localhost:5000/job-match",
+      "hhttps://ai-career-copilot-backend-a90g.onrender.com/job-match",
       {
         method: "POST",
         headers: {
@@ -68,7 +68,7 @@ const analyzeJobMatch = async () => {
 const token = localStorage.getItem("token");
 
 const response = await fetch(
-  "http://localhost:5000/my-resumes",
+  "https://ai-career-copilot-backend-a90g.onrender.com/my-resumes",
   {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -114,7 +114,7 @@ const response = await fetch(
  const rewriteResume = async () => {
   try {
     const response = await fetch(
-      "http://localhost:5000/rewrite-resume",
+      "https://ai-career-copilot-backend-a90g.onrender.com/ai-review",
       {
         method: "POST",
         headers: {
@@ -144,7 +144,7 @@ const response = await fetch(
       setLoading(true);
       const formData = new FormData();
       formData.append("resume", resume);
-      const response = await fetch("http://localhost:5000/upload-resume", {
+     fetch("https://ai-career-copilot-backend-a90g.onrender.com/upload-resume", {
         method: "POST",
         body: formData,
       });
@@ -155,7 +155,7 @@ const response = await fetch(
         const token = localStorage.getItem("token");
 
 const analysisResponse = await fetch(
-  "http://localhost:5000/analyze-resume",
+  "https://ai-career-copilot-backend-a90g.onrender.com/analyze-resume", 
   {
     method: "POST",
     headers: {
@@ -168,7 +168,7 @@ const analysisResponse = await fetch(
   }
 );
         const analysisData = await analysisResponse.json();
-        const aiResponse = await fetch("http://localhost:5000/ai-review", {
+        const aiResponse = await fetch("https://ai-career-copilot-backend-a90g.onrender.com/ai-review", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ resumeText: data.extractedText }),
@@ -232,7 +232,7 @@ const analysisResponse = await fetch(
   const generateInterviewQuestions = async () => {
     try {
       setLoadingQuestions(true);
-      const response = await fetch("http://localhost:5000/interview-questions", {
+      const response = await fetch("https://ai-career-copilot-backend-a90g.onrender.com/interview-questions",  {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resumeText }),
@@ -251,7 +251,7 @@ const analysisResponse = await fetch(
     setLoadingCoverLetter(true);
 
     const response = await fetch(
-      "http://localhost:5000/generate-cover-letter",
+      "https://ai-career-copilot-backend-a90g.onrender.com/generate-cover-letter",
       {
         method: "POST",
         headers: {
@@ -277,7 +277,7 @@ const analysisResponse = await fetch(
 const deleteResume = async (id) => {
   try {
     await fetch(
-      `http://localhost:5000/delete-resume/${id}`,
+      `https://ai-career-copilot-backend-a90g.onrender.com/delete-resume/${id}`,
       { method: "DELETE" }
     );
 
