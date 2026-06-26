@@ -41,7 +41,7 @@ const [missingSkills, setMissingSkills] = useState([]);
 const analyzeJobMatch = async () => {
   try {
     const response = await fetch(
-      "hhttps://ai-career-copilot-backend-a90g.onrender.com/job-match",
+      "https://ai-career-copilot-backend-a90g.onrender.com/job-match",
       {
         method: "POST",
         headers: {
@@ -144,7 +144,8 @@ const response = await fetch(
       setLoading(true);
       const formData = new FormData();
       formData.append("resume", resume);
-     fetch("https://ai-career-copilot-backend-a90g.onrender.com/upload-resume", {
+      const response = await fetch(
+     "https://ai-career-copilot-backend-a90g.onrender.com/upload-resume", {
         method: "POST",
         body: formData,
       });
