@@ -66,21 +66,27 @@ app.post("/upload-resume", upload.single("resume"), async (req, res) => {
 console.log(cloudinaryResult.secure_url);
 
     const pdfBuffer = fs.readFileSync(req.file.path);
-    fs.unlinkSync(req.file.path);
 
-    res.json({
-      success: true,
-      message: "Resume uploaded and parsed successfully",
-      extractedText: pdfData.text,
-    });
+const pdfData = await pdfParse(pdfBuffer);
+
+fs.unlinkSync(req.file.path);
+
+res.json({
+  success: true,
+  message: "Resume uploaded and parsed successfully",
+  extractedText: pdfData.text,
+});
   } catch (error) {
-    console.error("PDF ERROR:", error);
+  console.error("========== UPLOAD ERROR ==========");
+  console.error(error);
+  console.error(error.stack);
 
-    res.status(500).json({
-      success: false,
-      message: "Error reading PDF",
-    });
-  }
+  return res.status(500).json({
+    success: false,
+    message: error.message,
+    stack: error.stack,
+  });
+}
 });
 
 app.post(
@@ -568,13 +574,11 @@ Answer:
         completion.choices[0].message.content,
     });
   } catch (error) {
-  console.error("INTERVIEW ERROR:");
-  console.error(error.message);
-  console.error(error);
+  console.error("PDF ERROR:", error);
 
-  res.status(500).json({
+  return res.status(500).json({
     success: false,
-    questions: error.message,
+    message: error.message,
   });
 }
 });
