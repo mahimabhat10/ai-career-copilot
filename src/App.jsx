@@ -128,9 +128,7 @@ const response = await fetch(
 
     const data = await response.json();
 
-    setImprovedResume(
-      data.improvedResume || ""
-    );
+    setImprovedResume(data.review || "");
   } catch (error) {
     console.error(error);
   }

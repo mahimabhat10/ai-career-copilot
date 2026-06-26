@@ -530,13 +530,16 @@ res.json({
 });
 
   } catch (error) {
-    console.error(error);
+  console.error("========== AI REVIEW ERROR ==========");
+  console.error(error);
+  console.error(error.response?.data);
+  console.error(error.stack);
 
-    res.status(500).json({
-      success: false,
-      message: "AI Review Failed",
-    });
-  }
+  res.status(500).json({
+    success: false,
+    message: error.message,
+  });
+}
 });
 app.post("/interview-questions", async (req, res) => {
   try {
